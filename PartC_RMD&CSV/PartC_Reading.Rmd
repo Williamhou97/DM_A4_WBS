@@ -1,0 +1,88 @@
+---
+title: "Files reading"
+author: "A4"
+date: "2019/11/18"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=FALSE)
+```
+
+Load library
+
+```{r, echo=TRUE}
+
+rm(list=ls())
+library(rvest)
+library(httr)
+library(dplyr)
+library(stringr)
+library(XML)
+library(plyr)
+
+```
+
+
+1. Set up working environment
+```{r}
+#Get file path
+workingfile <- getwd()
+workenvironment <- paste0(workingfile,"/","htmlfiles")
+#Get the vector of all files
+filelist <- list.files(workenvironment)
+```
+
+2. Define process function to extract from certain url and return dataframe
+```{r define_funcation}
+extractdata <- function(filename) {
+  #Get full file name
+  filenamefull <- paste0(workenvironment,"/",filename)
+  my_list <- XML::xmlToList(filenamefull)
+  #Extract company information from the list
+  foodinfo <- my_list$EstablishmentCollection
+  #Extract data line by line
+  for (i in 1:length(foodinfo)){
+    #If it's the first data, build a new dataframe
+    if (i == 1){
+    data <- data.frame(t(unlist(foodinfo[1])))
+    }
+    #If it's not the first data, add data to existing dataframe
+    else{
+      line <- data.frame(t(unlist(foodinfo[i])))
+      #Combine new data and existing dataframe
+      data <- rbind.fill(data,line)
+    }
+  } 
+  return(data)
+}
+
+```
+
+
+3. Go over all the xml files and extract data
+```{r}
+for (i in 1:length(filelist)){
+  if (i == 1){
+    dataset <- extractdata(filelist[i])
+  }
+  else{
+    dataset <- rbind.fill(dataset,extractdata(filelist[i]))
+  }
+}
+```
+
+4. Export the data to csv file.
+```{r}
+write.csv(dataset,file = "PartC_dataset.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+

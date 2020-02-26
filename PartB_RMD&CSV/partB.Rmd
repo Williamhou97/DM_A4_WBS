@@ -1,0 +1,84 @@
+---
+title: "PartB"
+author: "Group A4"
+date: "06/11/2019"
+output: word_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Dataset: Extended Energy Balances (OECD countries) 
+Source: Energy Balances of OECD Countries, www.iea.org/statistics
+
+1. Clear the environment and load necessary libraries
+```{r preparation, message=FALSE}
+rm(list=ls())
+library(dplyr)
+library(tidyr)
+library(readr)
+library(readxl)
+```
+
+2. Create the reading file loop
+The are two cycles in the loop function: The first one is to pick up reference information including country name, flow and unit. The second one copies and combines the content of all files into one data frame $copy.all.contents$
+```{r import data, results="hide", message=FALSE}
+setwd( "C:/Users/buith/Desktop/Data Management/Group assignment/") #setting working direction 
+read.all.file <- list.files("../Group assignment/group_assignment/", recursive = TRUE)
+# The first file in the list is a macro xlms file
+copy.all.contents <- data.frame()
+
+for (f in  2:length(read.all.file)) {
+  this.file <- read.all.file[f]
+  this.file.path <- paste0("../Group assignment/group_assignment/", read.all.file[f])
+  
+  # Pick up contry name, flow and unit
+  this.file.header <- read_xlsx(this.file.path, skip = 1, n_max = 3)
+  this.file.country <- this.file.header[3,3]
+  this.file.flow <- this.file.header[1,3]
+  this.file.unit <- this.file.header[2,3]
+  
+  # Copy all content and merge to one file
+  this.file.content <- read_xlsx(this.file.path, skip = 5, na = "..")
+  this.file.content.omit <- head(this.file.content, -3) #remove the last 3 rows in each file
+  # Add Country, Flow and Unit columns
+  this.file.content.omit$Country <-unlist(rep(this.file.country, nrow(this.file.content.omit)))
+  this.file.content.omit$Flow <- unlist(rep(this.file.flow, nrow(this.file.content.omit)))
+  this.file.content.omit$Unit <- unlist(rep(this.file.unit, nrow(this.file.content.omit)))
+ 
+  copy.all.contents <- rbind(copy.all.contents, this.file.content.omit)
+}
+```
+
+3. The following codes are used to tidy up the file's structure.
+```{r cleanup}
+names(copy.all.contents)[1] <- "Year"
+# Remove all rows and column that do not include actual values.
+copy.all.contents <- copy.all.contents[-which(copy.all.contents$Year == "Time"), ]
+copy.all.contents$...2 <- NULL
+```
+
+4. The next step is to use gather() function to transpose products from columns to rows.
+The final file is $long.copy.all.contents$
+
+```{r transpose}
+long.copy.all.contents <- copy.all.contents %>% gather(Product, Value, `Additives/blending components`:Wind)
+```
+
+5. Print number of records
+```{r}
+# The total number of record in the final data frame:
+print(nrow(long.copy.all.contents))
+head(long.copy.all.contents)
+```
+```{r}
+# The number records for each product: (NA values included)
+long.copy.all.contents %>% group_by(Product) %>% summarise(count=n())
+# The number records for each product: (NA values excluded)
+long.copy.all.contents %>% filter(!is.na(Value)) %>% group_by(Product) %>% summarise(count=n())
+```
+
+

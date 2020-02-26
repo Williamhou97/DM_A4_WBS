@@ -1,0 +1,84 @@
+---
+title: "Downloading xml"
+author: "A4"
+date: "2019/11/18"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+1. Load library and set up download link
+
+```{r cars}
+rm(list=ls())
+library(rvest)
+library(httr)
+library(dplyr)
+library(stringr)
+library(XML)
+library(plyr)
+```
+
+
+```{r}
+
+url <- "https://data.food.gov.uk/catalog/datasets/38dd8d6a-5ab1-4f50-b753-ab33288e3200"
+url_page <- read_html(url)
+
+```
+
+2. Save url for all the data to be downloaded
+
+```{r}
+href <- url_page %>%
+  html_nodes(".o-dataset-distribution--link")
+```
+
+3. Save title for all the data to be downloaded
+
+```{r}
+title <- url_page %>%
+  html_nodes(".o-dataset-distribution--link") %>%
+  html_attr("title")
+```
+
+
+```{r }
+# Create a new file to take all the data
+dir.create("htmlfiles")
+#Get file path
+workingfile <- getwd()
+envoirment <- paste0(workingfile,"/","htmlfiles","/")
+```
+
+4. Define function to download all xml files
+```{r define_funcation}
+downloaddata <- function(url) {
+  #Using regular expression to select unique names from url
+  filename <- paste(envoirment,as.character(str_extract_all(url,pattern = "FHRS\\d{3}")),".xml",sep = "")
+  #Save data to a file
+  my_file <- download.file(url,filename)
+}
+```
+
+5. Go over all the url and download data
+```{r}
+for (i in 2:length(href)){
+  #Exclude Duplication
+  if (title[i] == "Wrexham (Welsh language)"){
+    next
+  }
+  else(
+    downloaddata(href[i])
+  )
+}
+
+```
+
+
+
+
+
+
